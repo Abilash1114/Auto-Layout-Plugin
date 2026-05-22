@@ -1,0 +1,13 @@
+{
+  "name": "Smart Auto Layout Reconstruction Engine",
+  "id": "smart-auto-layout-engine",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": [
+    "figma"
+  ],
+  "permissions": [
+    "currentuser"
+  ]
+}

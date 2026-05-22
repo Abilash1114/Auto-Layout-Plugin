@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Auto Layout Engine</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg0: #0e0f11;
+      --bg1: #16181c;
+      --bg2: #1e2127;
+      --bg3: #262a33;
+      --border: #2e333d;
+      --border2: #3a404d;
+      --text0: #f0f2f5;
+      --text1: #a8b0be;
+      --text2: #6b7485;
+      --accent: #6c63ff;
+      --accent2: #8b84ff;
+      --green: #3ecf8e;
+      --amber: #f5a623;
+      --red: #e05c5c;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    html,
+    body {
+      width: 380px;
+      min-height: 560px;
+      background: var(--bg0);
+      color: var(--text0);
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .header-text h1 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text0);
+      letter-spacing: -0.01em;
+    }
+
+    .header-text p {
+      font-size: 11px;
+      color: var(--text2);
+      margin-top: 1px;
+    }
+
+    /* ── Selection info ──────────────────────────────────── */
+    .section {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text2);
+      margin-bottom: 10px;
+    }
+
+    .selection-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .selection-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .selection-icon svg {
+      width: 16px;
+      height: 16px;
+      opacity: 0.7;
+    }
+
+    .selection-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text0);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .selection-meta {
+      font-size: 11px;
+      color: var(--text2);
+      margin-top: 2px;
+    }
+
+    .no-selection {
+      font-size: 12px;
+      color: var(--text2);
+      font-style: italic;
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    /* ── Options ─────────────────────────────────────────── */
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+    }
+
+    .option-row:hover {
+      background: var(--bg2);
+    }
+
+    .option-row input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .option-label {
+      font-size: 12px;
+      color: var(--text1);
+    }
+
+    .option-label span {
+      color: var(--text0);
+      font-weight: 500;
+    }
+
+    /* ── Actions ─────────────────────────────────────────── */
+    .actions {
+      padding: 16px 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 11px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      outline: none;
+      letter-spacing: -0.01em;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+
+    .btn-preview {
+      background: var(--bg3);
+      color: var(--text0);
+      border: 1px solid var(--border2);
+    }
+
+    .btn-preview:hover:not(:disabled) {
+      background: var(--bg2);
+      border-color: var(--accent);
+      color: var(--accent2);
+    }
+
+    .btn-export {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-export:hover:not(:disabled) {
+      background: var(--accent2);
+    }
+
+    /* ── Progress ────────────────────────────────────────── */
+    .progress-section {
+      padding: 0 20px 16px;
+      display: none;
+    }
+
+    .progress-section.visible {
+      display: block;
+    }
+
+    .progress-track {
+      height: 4px;
+      background: var(--bg3);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .progress-label {
+      font-size: 11px;
+      color: var(--text2);
+      margin-top: 6px;
+    }
+
+    /* ── Log ─────────────────────────────────────────────── */
+    .log-section {
+      padding: 0 20px 16px;
+      display: none;
+    }
+
+    .log-section.visible {
+      display: block;
+    }
+
+    .log-box {
+      background: var(--bg1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      height: 130px;
+      overflow-y: auto;
+      font-family: "SF Mono", "Menlo", "Consolas", monospace;
+      font-size: 11px;
+      color: var(--text2);
+      line-height: 1.6;
+    }
+
+    .log-box::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .log-box::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .log-box::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .log-line {
+      margin-bottom: 2px;
+    }
+
+    .log-line.success {
+      color: var(--green);
+    }
+
+    .log-line.error {
+      color: var(--red);
+    }
+
+    .log-line.info {
+      color: var(--accent2);
+    }
+
+    /* ── Status pill ─────────────────────────────────────── */
+    .status-pill {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      margin: 0 20px 16px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-pill.visible {
+      display: flex;
+    }
+
+    .status-pill.success {
+      background: rgba(62, 207, 142, 0.12);
+      color: var(--green);
+      border: 1px solid rgba(62, 207, 142, 0.25);
+    }
+
+    .status-pill.error {
+      background: rgba(224, 92, 92, 0.12);
+      color: var(--red);
+      border: 1px solid rgba(224, 92, 92, 0.25);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    /* ── Divider ─────────────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* ── How it works ────────────────────────────────────── */
+    .howto {
+      padding: 14px 20px 20px;
+    }
+
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .step {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      width: 20px;
+      height: 20px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent2);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-text {
+      font-size: 11.5px;
+      color: var(--text1);
+      line-height: 1.5;
+    }
+
+    .step-text b {
+      color: var(--text0);
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="2" width="7" height="7" rx="1.5" fill="white" opacity="0.9" />
+        <rect x="11" y="2" width="7" height="7" rx="1.5" fill="white" opacity="0.6" />
+        <rect x="2" y="11" width="7" height="7" rx="1.5" fill="white" opacity="0.6" />
+        <rect x="11" y="11" width="7" height="7" rx="1.5" fill="white" opacity="0.3" />
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>Auto Layout Engine</h1>
+      <p>Intelligent UI reconstruction system</p>
+    </div>
+  </div>
+
+  <!-- Selection -->
+  <div class="section">
+    <div class="section-label">Selected Frame</div>
+    <div id="selectionCard" class="selection-card" style="display:none">
+      <div class="selection-icon">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="14" height="14" rx="2" stroke="#a8b0be" stroke-width="1.5" />
+          <rect x="4" y="4" width="3" height="3" rx="0.5" fill="#a8b0be" opacity="0.6" />
+          <rect x="9" y="4" width="3" height="3" rx="0.5" fill="#a8b0be" opacity="0.6" />
+          <rect x="4" y="9" width="8" height="1.5" rx="0.5" fill="#a8b0be" opacity="0.4" />
+        </svg>
+      </div>
+      <div style="min-width:0">
+        <div class="selection-name" id="selName">—</div>
+        <div class="selection-meta" id="selMeta">—</div>
+      </div>
+    </div>
+    <div id="noSelection" class="no-selection">
+      Select a Frame on the canvas to begin
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div class="section">
+    <div class="section-label">Options</div>
+    <label class="option-row">
+      <input type="checkbox" id="optDetachInstances" checked />
+      <span class="option-label"><span>Detach instances</span> before reconstruction</span>
+    </label>
+    <label class="option-row">
+      <input type="checkbox" id="optConvertGroups" checked />
+      <span class="option-label"><span>Convert groups</span> to frames (required for AL)</span>
+    </label>
+    <label class="option-row">
+      <input type="checkbox" id="optPreserveHidden" />
+      <span class="option-label"><span>Include hidden layers</span> in output</span>
+    </label>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn btn-preview" id="btnPreview" disabled>
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="8" cy="8" r="6.25" stroke="currentColor" stroke-width="1.5" />
+        <circle cx="8" cy="8" r="2.5" fill="currentColor" />
+      </svg>
+      Preview
+    </button>
+    <button class="btn btn-export" id="btnExport" disabled>
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+          stroke-linejoin="round" />
+        <path d="M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+      Export Layout
+    </button>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-section" id="progressSection">
+    <div class="progress-track">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="progress-label" id="progressLabel">Starting…</div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-pill" id="statusPill">
+    <div class="status-dot"></div>
+    <span id="statusText"></span>
+  </div>
+
+  <!-- Log -->
+  <div class="log-section" id="logSection">
+    <div class="section-label" style="margin-bottom:8px">Activity log</div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- How it works -->
+  <div class="howto">
+    <div class="section-label">How it works</div>
+    <div class="step-list">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text"><b>Analyses</b> the full frame hierarchy — frames, groups, components, text, images</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text"><b>Converts</b> groups → frames, detaches instances safely (bottom-up)</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text"><b>Detects</b> horizontal / vertical stacks, cards, nav bars, icon + text rows</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text"><b>Applies</b> real nested Auto Layout with correct gaps, padding, alignment</div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-text"><b>Preserves</b> visual accuracy pixel-perfect — fills, strokes, effects, typography
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const btnPreview = document.getElementById('btnPreview');
+    const btnExport = document.getElementById('btnExport');
+    const selCard = document.getElementById('selectionCard');
+    const noSel = document.getElementById('noSelection');
+    const selName = document.getElementById('selName');
+    const selMeta = document.getElementById('selMeta');
+    const progressSection = document.getElementById('progressSection');
+    const progressBar = document.getElementById('progressBar');
+    const progressLabel = document.getElementById('progressLabel');
+    const logSection = document.getElementById('logSection');
+    const logBox = document.getElementById('logBox');
+    const statusPill = document.getElementById('statusPill');
+    const statusText = document.getElementById('statusText');
+
+    let running = false;
+
+    // ── Selection polling ──────────────────────────────────
+    // Figma doesn't push selection to UI automatically;
+    // we request it from the plugin code on load and on change.
+    window.onmessage = (ev) => {
+      const msg = ev.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'selection') {
+        updateSelection(msg);
+      } else if (msg.type === 'progress') {
+        showProgress(msg.pct, msg.label);
+      } else if (msg.type === 'log') {
+        addLog(msg.text);
+      } else if (msg.type === 'error') {
+        showStatus(msg.text, 'error');
+        setRunning(false);
+      } else if (msg.type === 'done') {
+        const txt = msg.mode === 'export'
+          ? '✓ Export placed on canvas'
+          : '✓ Preview created — original untouched';
+        showStatus(txt, 'success');
+        setRunning(false);
+      }
+    };
+
+    function updateSelection(msg) {
+      if (msg.hasSelection) {
+        selCard.style.display = 'flex';
+        noSel.style.display = 'none';
+        selName.textContent = msg.name;
+        selMeta.textContent = `${msg.nodeType} · ${msg.w}×${msg.h}`;
+        btnPreview.disabled = false;
+        btnExport.disabled = false;
+      } else {
+        selCard.style.display = 'none';
+        noSel.style.display = 'block';
+        btnPreview.disabled = true;
+        btnExport.disabled = true;
+      }
+    }
+
+    function showProgress(pct, label) {
+      progressSection.classList.add('visible');
+      progressBar.style.width = pct + '%';
+      progressLabel.textContent = label || '';
+    }
+
+    function addLog(text) {
+      logSection.classList.add('visible');
+      const div = document.createElement('div');
+      div.className = 'log-line' +
+        (text.startsWith('✅') ? ' success' : text.startsWith('❌') ? ' error' : ' info');
+      div.textContent = text;
+      logBox.appendChild(div);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function showStatus(text, kind) {
+      statusPill.className = 'status-pill visible ' + kind;
+      statusText.textContent = text;
+    }
+
+    function setRunning(val) {
+      running = val;
+      btnPreview.disabled = val;
+      btnExport.disabled = val;
+    }
+
+    function clearState() {
+      progressSection.classList.remove('visible');
+      progressBar.style.width = '0%';
+      logSection.classList.remove('visible');
+      logBox.innerHTML = '';
+      statusPill.className = 'status-pill';
+    }
+
+    // ── Button handlers ────────────────────────────────────
+    btnPreview.addEventListener('click', () => {
+      if (running) return;
+      clearState();
+      setRunning(true);
+      parent.postMessage({ pluginMessage: { type: 'preview' } }, '*');
+    });
+
+    btnExport.addEventListener('click', () => {
+      if (running) return;
+      clearState();
+      setRunning(true);
+      parent.postMessage({ pluginMessage: { type: 'export' } }, '*');
+    });
+
+    // ── Ask plugin for current selection on load ───────────
+    parent.postMessage({ pluginMessage: { type: 'getSelection' } }, '*');
+  </script>
+</body>
+
+</html>
